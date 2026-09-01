@@ -17,3 +17,4 @@ pip install -r requirements.txt\
 # Development instructions
 
 git --no-pager log > gitLog.txt
+pip freeze > requirements.txt
