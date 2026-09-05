@@ -18,3 +18,7 @@ pip install -r requirements.txt\
 
 git --no-pager log > gitLog.txt
 pip freeze > requirements.txt
+## Lung CT bounding-box pipeline
+
+See [alexNet/README.md](alexNet/README.md) for XML/DICOM matching, PNG preparation,
+AlexNet-based lesion detection training, and prediction overlays.

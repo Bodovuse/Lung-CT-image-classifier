@@ -2,3 +2,7 @@ venv/
 .venv/
 env/
 .vscode
+# Generated CT images, model weights and Python caches
+artifacts/
+__pycache__/
+*.pyc
