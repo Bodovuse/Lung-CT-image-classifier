@@ -1,0 +1,30 @@
+Project scope: compare SVM versus Random Forest classification heads using identical CT-fine-tuned AlexNet CNN features.
+Labels: lesion_present / lesion_absent per CT slice.
+Patient split: approximately 70/15/15; 314 eligible patients gives 220 train, 47 validation, 47 test.
+Full runner: python -m alexNet.train_full_dataset --dicoms "D:/Project data/lung_pet_ct_dx" --annotations "../Data/Lung-PET-CT-Dx-Annotations-XML-Files-rev12222020" --output artifacts/full_classifier_comparison --exclude-missing-patients
+The filtered detector process was cancelled on 2026-09-06 after project scope correction.
+Existing detector results are historical and must not be used as classification comparison results.
+Original source files preserved in artifacts/pre_classification_only_sources.zip.
+
+"counts": {
+    "train/lesion_present": 17290,
+    "train/lesion_absent": 105229,
+    "test/lesion_present": 5312,
+    "test/lesion_absent": 24992,
+    "val/lesion_absent": 22584,
+    "val/lesion_present": 3898
+  },
+
+AlexNet now fine-tunes on annotation-derived training labels with a temporary neural head.
+Validation macro F1 selects CNN weights; test patients remain held out.
+Then freeze the selected CNN and compare SVM and Random Forest.
+Defaults: 20 epochs maximum, patience 5, AdamW learning rate 1e-5.
+
+Started full_classification_70pct_20260906 in the background.
+314 eligible patients: 220 train / 47 validation / 47 test; seed 42.
+All eligible slices; CPU with 4 Torch threads; batch size 16.
+Sequence: dataset preparation, AlexNet fine-tuning, shared feature extraction, SVM and Random Forest comparison.
+Progress log: artifacts/full_classification_70pct_20260906.stdout.log
+Error log: artifacts/full_classification_70pct_20260906.stderr.log
+Run status: artifacts/full_classification_70pct_20260906.status.json (running / complete / failed).
+Output: artifacts/full_classification_70pct_20260906

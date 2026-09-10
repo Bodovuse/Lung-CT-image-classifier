@@ -1,62 +1,80 @@
-# Lung CT lesion detection
+# CNN classification: SVM versus Random Forest
 
-`alexNet.py` now uses a PyTorch AlexNet convolutional backbone with a Faster R-CNN
-head. It learns to locate annotated lesions, including multiple boxes per slice.
-It replaces the earlier TensorFlow slice-classification draft. Training starts
-from random weights; no pretrained cancer detector is included.
+The project first fine-tunes an ImageNet-initialized AlexNet CNN on CT slice
+labels, then compares **SVM and Random Forest on the same learned features**.
+Both classifiers predict `lesion_present` or `lesion_absent` for a whole slice.
 
-Use Python 3.12 and install `pip install -r alexNet/requirements.txt`.
-The root requirements also include the detector dependencies; TensorFlow is no
-longer required for this pipeline.
+During fine-tuning, a temporary linear two-class neural head supplies gradients
+through class-weighted cross-entropy. AdamW updates the CNN using training patients
+only. Validation macro F1 selects the best checkpoint; early stopping defaults to
+5 epochs without improvement, with a maximum of 20 epochs and learning rate 1e-5.
+Class weights are computed from training labels only. Test images are never loaded
+during fine-tuning. Labels come from XML presence, not classifier pseudo-labels.
 
-Prepare the annotated CT images (PowerShell, from the repository root):
+After selection, the auxiliary head is unused and the CNN is frozen. The backbone
+omits AlexNet's final max pool and uses adaptive average pooling to 6 x 6, yielding
+9,216 features per slice. Both final classifiers receive identical features and
+patient splits. SVM uses training-fitted standard scaling and an RBF kernel (C=1);
+Random Forest uses 300 trees. Both use balanced class weights; the seed is 42.
 
-```powershell
-python alexNet/prepare_voc.py --annotations "C:\Users\Admin\Documents\Masters\project\Data\Lung-PET-CT-Dx-Annotations-XML-Files-rev12222020" --dicoms "D:\Project data" --output artifacts/lung_ct
-```
+## Setup and full comparison
 
-This reads DICOM headers to match SOPInstanceUID against the XML filename, ignores
-PET images, converts only matched CT slices, and writes a manifest and a report
-of unmatched annotations/read errors. Inspect the report before training. The XML
-filename/path fields are placeholders in this dataset and are not used. Existing
-exports can be reused with `--png-root PATH`: that folder must mirror precisely
-the `--dicoms` root as produced by `dicomConvert.py -f`, with `.dcm.png` filenames.
-No DICOM files or XML annotations are modified.
-
-For a small preparation check add `--patient A0001` and choose a separate output
-folder. Such a one-patient sample is for inspection, not training/validation.
-Five original-size PNGs with ground-truth boxes are saved for visual inspection.
-Default box conversion assumes standard one-based inclusive VOC coordinates;
-use `--voc-origin 0` if your annotation source uses zero-based coordinates.
-The PNGs must retain original dimensions and orientation.
+Use Python 3.12 and run commands from the repository root:
 
 ```powershell
-python alexNet/alexNet.py train --manifest artifacts/lung_ct/manifest.json --epochs 20 --batch-size 2 --model artifacts/lesion_detector.pt
-python alexNet/alexNet.py predict --model artifacts/lesion_detector.pt --image "path/to/scan.png" --output artifacts/prediction
+python -m pip install -r alexNet/requirements.txt
+python -m alexNet.train_full_dataset --dicoms "D:/Project data/lung_pet_ct_dx" --annotations "../Data/Lung-PET-CT-Dx-Annotations-XML-Files-rev12222020" --output artifacts/full_classifier_comparison --exclude-missing-patients
 ```
 
-Use `--device cuda` with a compatible PyTorch CUDA installation. CPU training is
-supported but slow. Predictions are written as JSON boxes in original image
-coordinates and a PNG overlay. Training saves the checkpoint with the highest
-validation F1 at score >= 0.5 and IoU >= 0.5 (threshold configurable). These are
-box-level precision/recall/F1, not patient-level cancer accuracy or mAP. Reserve
-an additional independent patient test set before reporting final performance;
-do not repeatedly tune against that test set.
+This prepares every eligible slice, fine-tunes AlexNet, extracts shared features, fits both classifiers,
+and reports validation and held-out test performance. Use a new output directory
+for each run. Feature extraction downloads ImageNet weights if not already cached.
+`--batch-size` controls CNN training/extraction batches; `--device cuda` enables GPU use.
+Use `--epochs`, `--patience`, and `--learning-rate` to configure fine-tuning.
+Partial runs retain their best CNN checkpoint and history; automatic resume is not implemented.
+Full-dataset RBF SVM fitting and storing 9,216 features per slice can require
+substantial memory and time; the runner does not silently sample the dataset.
 
-The preparation split is reproducible and patient-disjoint (80/20 by default).
-All A/B/E/G boxes are combined into one `lesion` class. The collection contains
-lung cancer cases; absent XML files are not negative cancer labels. Background
-region proposals are used by the detector during training, but evaluation here
-covers annotated slices only and cannot establish performance on cancer-free
-patients. Scores are model outputs, not calibrated cancer probabilities.
+## Separate preparation and comparison
 
-The converter retains per-slice intensity scaling for compatibility with existing
-exports, handles signed/constant arrays, and preserves spatial dimensions. These
-8-bit PNGs do not retain HU calibration or 3D spacing. Use consistent conversion
-for training and prediction; this is a research baseline, not a validated diagnosis
-system. Lung-window preprocessing and a backbone with finer spatial features
-would be separate experiments.
+```powershell
+python -m alexNet.prepare_classification --dicoms "D:/Project data/lung_pet_ct_dx" --annotations "../Data/Lung-PET-CT-Dx-Annotations-XML-Files-rev12222020" --output artifacts/classification_dataset --exclude-missing-patients
+python -m alexNet.compare_classifiers --labels artifacts/classification_dataset/labels.csv --output artifacts/classifier_comparison
+```
 
-References: [TCIA dataset](https://www.cancerimagingarchive.net/collection/lung-pet-ct-dx/)
-and [TorchVision detection interface](https://docs.pytorch.org/tutorials/intermediate/torchvision_tutorial.html).
+Preparation applies `dataset_policy.py` patient and scan exclusions, matches
+patient ID + SOPInstanceUID, and supports single-frame grayscale / unsigned 8-bit
+RGB CT. Under the dataset owner's labeling rule, matching XML means lesion present;
+no matching XML means lesion absent. Supply the complete annotation directory.
+Grayscale uses per-slice 8-bit scaling; RGB pixels are preserved. AlexNet then uses
+its ImageNet resize, center crop and normalization. Both classifiers see the same
+transformed images. Patient splits are approximately 70/15/15 (220/47/47 for 314
+eligible patients), with both classes required in each split.
 
+`--max-patients` and `--max-slices-per-patient` are optional preparation flags for
+pilot experiments. `--resume` reuses verified PNGs after interrupted preparation.
+Prepared CSV columns are `image,patient_id,label,split`; relative image paths are
+resolved against the CSV directory. Patient leakage and unseen evaluation classes
+are rejected. Validation/test slices are never passed to classifier fitting or
+scaler fitting. Classifier hyperparameters are fixed; CNN checkpoint selection uses validation only.
+
+## Outputs
+
+- `alexnet_features.pt`: selected CNN weights, auxiliary training head and selection metadata.
+- `finetuning_history.json`: training loss and validation macro F1 by epoch.
+- `svm.joblib` and `random_forest.joblib`: both fitted classification heads.
+- `features.npz` and `rows.json`: shared feature matrix and ordered slice metadata.
+- `metrics.json`: accuracy, balanced accuracy, confusion matrices, sensitivity,
+  specificity, precision, and per-class F1 for validation/test.
+- `predictions.csv`: per-slice predictions from both classifiers.
+
+Export a comparison table and F1 figure with:
+
+```powershell
+python -m alexNet.export_results --metrics artifacts/classifier_comparison/metrics.json --output artifacts/classifier_report
+python -m unittest discover -v
+```
+
+The current architecture is illustrated in `artifacts/model_flowchart.png`, with
+editable Mermaid source alongside it. Older detector artifacts are historical,
+superseded outputs and are not inputs to this classification pipeline.
