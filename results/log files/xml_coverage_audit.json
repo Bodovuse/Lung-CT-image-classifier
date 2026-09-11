@@ -1,0 +1,102 @@
+{
+  "total_xml": 31562,
+  "xml_patients": 357,
+  "malformed_or_missing_dimensions": [
+    {
+      "path": "C:\\Users\\Admin\\Documents\\Masters\\project\\Data\\Lung-PET-CT-Dx-Annotations-XML-Files-rev12222020\\Annotation\\A0024\\1.3.6.1.4.1.14519.5.2.1.6655.2359.148117780944430339778694852523.xml",
+      "error": "not well-formed (invalid token): line 1, column 0"
+    }
+  ],
+  "invalid_boxes": [],
+  "empty_annotations": [],
+  "object_labels": {
+    "A": 13065,
+    "a": 7911,
+    "Q": 10,
+    "A0192": 9,
+    "g": 2089,
+    "B": 2244,
+    "b": 860,
+    "E": 201,
+    "G": 5270
+  },
+  "image_sizes": {
+    "512x512": 31561
+  },
+  "placeholder_fields": {
+    "folder": 25122,
+    "filename": 25122,
+    "path": 25122
+  },
+  "zip_xml_count": 31562,
+  "missing_from_extracted_folder": [],
+  "extra_local_files": [],
+  "different_from_zip": [],
+  "matched_usable_ct_xml": 20155,
+  "matched_unsupported_ct_xml": 10227,
+  "unavailable_patient_xml": {
+    "A0060": 6,
+    "A0067": 45,
+    "A0076": 26,
+    "A0266": 312
+  },
+  "unmatched_xml_count": 791,
+  "unmatched_patient_count": 38,
+  "unmatched_by_patient": {
+    "A0212": 109,
+    "A0220": 98,
+    "G0047": 92,
+    "B0038": 82,
+    "A0206": 41,
+    "A0145": 35,
+    "A0057": 30,
+    "A0175": 28,
+    "A0193": 27,
+    "G0027": 21,
+    "G0021": 18,
+    "A0114": 17,
+    "A0211": 17,
+    "A0130": 16,
+    "A0135": 16,
+    "A0176": 16,
+    "A0019": 15,
+    "A0025": 14,
+    "A0056": 12,
+    "A0213": 11,
+    "A0118": 10,
+    "A0192": 9,
+    "A0227": 8,
+    "A0016": 7,
+    "A0210": 6,
+    "A0004": 5,
+    "A0174": 5,
+    "A0226": 5,
+    "A0258": 4,
+    "G0038": 4,
+    "A0011": 3,
+    "A0018": 3,
+    "A0223": 2,
+    "A0014": 1,
+    "A0015": 1,
+    "A0024": 1,
+    "A0038": 1,
+    "A0121": 1
+  },
+  "patients_without_usable_ct": [],
+  "sample_patient_recheck": {
+    "A0004": {
+      "unmatched_xml": 5,
+      "scanned_modalities": {
+        "CT": 59
+      },
+      "matches_in_any_modality": []
+    },
+    "A0011": {
+      "unmatched_xml": 3,
+      "scanned_modalities": {
+        "CT": 1107
+      },
+      "matches_in_any_modality": []
+    }
+  }
+}
