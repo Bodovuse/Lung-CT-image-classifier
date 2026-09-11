@@ -19,13 +19,17 @@ def main():
     parser.add_argument('--learning-rate', type=float, default=1e-5)
     parser.add_argument('--exclude-missing-patients', action='store_true')
     args = parser.parse_args()
+    
     if args.batch_size < 1:
         parser.error('--batch-size must be positive')
     import math
+    
     if args.epochs < 1 or args.patience < 1 or not 0 < args.learning_rate < math.inf:
         parser.error('Invalid fine-tuning parameters')
+    
     if args.output.exists():
         raise FileExistsError('Choose a new output directory to preserve previous results')
+    
     prepare(SimpleNamespace(annotations=args.annotations, dicoms=args.dicoms,
         output=args.output / 'dataset', seed=args.seed, resume=False,
         exclude_missing_patients=args.exclude_missing_patients,

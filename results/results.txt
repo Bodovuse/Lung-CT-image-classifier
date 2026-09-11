@@ -1,0 +1,22 @@
+Fitting svm on 122519 training slices
+svm val: accuracy=87.57%
+svm test: accuracy=87.18%
+Fitting random_forest on 122519 training slices
+random_forest val: accuracy=88.48%
+random_forest test: accuracy=88.31%
+
+svm val: accuracy=87.57%, balanced accuracy=68.18%
+  lesion_absent: TP=21603, FP=2311, TN=1587, FN=981, sensitivity=95.66%, specificity=40.71%, precision=90.34%
+  lesion_present: TP=1587, FP=981, TN=21603, FN=2311, sensitivity=40.71%, specificity=95.66%, precision=61.80%
+
+svm test: accuracy=87.18%, balanced accuracy=75.42%
+  lesion_absent: TP=23376, FP=2268, TN=3044, FN=1616, sensitivity=93.53%, specificity=57.30%, precision=91.16%
+  lesion_present: TP=3044, FP=1616, TN=23376, FN=2268, sensitivity=57.30%, specificity=93.53%, precision=65.32%
+
+random_forest val: accuracy=88.48%, balanced accuracy=64.02%
+  lesion_absent: TP=22288, FP=2754, TN=1144, FN=296, sensitivity=98.69%, specificity=29.35%, precision=89.00%
+  lesion_present: TP=1144, FP=296, TN=22288, FN=2754, sensitivity=29.35%, specificity=98.69%, precision=79.44%
+
+random_forest test: accuracy=88.31%, balanced accuracy=70.19%
+  lesion_absent: TP=24514, FP=3065, TN=2247, FN=478, sensitivity=98.09%, specificity=42.30%, precision=88.89%
+  lesion_present: TP=2247, FP=478, TN=24514, FN=3065, sensitivity=42.30%, specificity=98.09%, precision=82.46%

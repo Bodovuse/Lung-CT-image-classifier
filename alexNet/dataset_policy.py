@@ -1,4 +1,4 @@
-"""Patient exclusions requested by the dataset owner."""
+"""Patient exclusions."""
 import hashlib
 import json
 from pathlib import Path

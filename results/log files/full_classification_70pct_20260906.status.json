@@ -1,0 +1,19 @@
+{
+  "state": "complete",
+  "pid": 24196,
+  "started_utc": "2026-09-06T20:54:37.971386+00:00",
+  "output": "artifacts/full_classification_70pct_20260906",
+  "device": "cpu",
+  "seed": 42,
+  "patient_split": {
+    "train": 220,
+    "val": 47,
+    "test": 47
+  },
+  "max_epochs": 20,
+  "patience": 5,
+  "batch_size": 16,
+  "learning_rate": 1e-05,
+  "pipeline": "CT preparation -> AlexNet fine-tuning -> SVM and Random Forest comparison",
+  "updated_utc": "2026-09-08T02:14:05.334562+00:00"
+}

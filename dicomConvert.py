@@ -31,6 +31,7 @@ def ct_to_png(ct_file, png_file):
     if pixels.ndim != 2:
         raise ValueError('Expected a single-frame grayscale pixel array')
     pixels = pixels.astype(np.float32)
+    
     # Retain legacy per-slice scaling for nonnegative pixels; handle signed/constant data.
     low, high = min(0.0, float(pixels.min())), float(pixels.max())
     scaled = np.zeros_like(pixels, dtype=np.uint8) if high <= low else ((pixels - low) / (high - low) * 255).clip(0, 255).astype(np.uint8)

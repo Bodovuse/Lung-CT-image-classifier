@@ -26,24 +26,30 @@ def main():
     identity_pairs = Counter()
     seen = set()
     stale_caches = []
+
     for cache in caches:
         data = json.loads(cache.read_text())
+
         # A nested patient directory may have been moved while the audit ran.
         if any(r['patient_id'].removeprefix('Lung_Dx-') != r['folder_patient']
                and not Path(r['path']).exists() for r in data['records']):
             stale_caches.append(str(cache))
             scanned.remove(cache.stem)
             continue
+
         read_errors.extend(data['errors'])
         for r in data['records']:
             series_bytes[r['series']] += r['bytes']
             series_images[r['series']] += 1
             modalities[r['modality']] += 1
+
             if r['patient_id'].removeprefix('Lung_Dx-') != r['folder_patient']:
                 identity_errors.append(r['path'])
                 identity_pairs[(r['folder_patient'], r['patient_id'])] += 1
+            
             if r['uid'] and r['uid'] in seen:
                 duplicates.append(r['path'])
+            
             seen.add(r['uid'])
             if r['uid'] in wanted:
                 direct[r['uid']].append(r)
@@ -54,6 +60,7 @@ def main():
                     references[uid].append(r['path'])
     inventory = defaultdict(Counter)
     series_issues = []
+
     with Path('D:/Project data/metadata/metadata.csv').open(newline='', encoding='utf-8-sig') as source:
         for r in csv.DictReader(source):
             patient, series = r['PatientID'], r['SeriesInstanceUID']
@@ -63,10 +70,12 @@ def main():
                      'scan_pending' if patient not in scanned else
                      'series_absent')
             inventory[patient.removeprefix('Lung_Dx-')][state] += 1
+            
             if state != 'bytes_equal':
                 series_issues.append(dict(patient=patient, series=series, state=state,
                     expected_bytes=int(r['FileSize']), local_bytes=series_bytes[series],
                     download_status=r['completion_status']))
+    
     results = []
     for name in prior['unmatched_xml']:
         path = Path(name)
@@ -79,12 +88,14 @@ def main():
         result = dict(xml=name, patient=patient, uid=uid, state=state,
             excluded_patient=patient in EXCLUDED_PATIENTS, matches=matches,
             file_meta_matches=meta[uid], referenced_by=references[uid])
+        
         for match in matches:
             actual_patient = match['patient_id'].removeprefix('Lung_Dx-')
             counterpart = path.parent.parent / actual_patient / path.name
             match['actual_patient_excluded'] = actual_patient in EXCLUDED_PATIENTS
             match['xml_under_dicom_patient'] = str(counterpart) if counterpart.exists() else None
             match['xml_bytes_identical'] = counterpart.read_bytes() == path.read_bytes() if counterpart.exists() else None
+            
             if counterpart.exists():
                 try:
                     def boxes(p):
@@ -100,11 +111,14 @@ def main():
             result['parse_error'] = str(exc)
             result['first_bytes_hex'] = path.read_bytes()[:32].hex()
         results.append(result)
+    
     patients = []
+    
     for patient in sorted({r['patient'] for r in results}):
         group = [r for r in results if r['patient'] == patient]
         patients.append(dict(patient=patient, prior_unmatched=len(group),
             states=dict(Counter(r['state'] for r in group)), inventory=dict(inventory[patient])))
+    
     summary = dict(scanned_patients=len(scanned), current_patient_folders=len(folders),
         stale_caches_skipped=stale_caches,
         eligible_patient_folders=len(folders - {'Lung_Dx-' + p for p in EXCLUDED_PATIENTS}),
@@ -123,6 +137,7 @@ def main():
         limitations=['Header caches are snapshots and are not automatically invalidated after source changes.',
                       'Equal byte totals do not prove file integrity or completeness of the source inventory.',
                       'Cross-patient absence is provisional until scan_complete is true.'])
+    
     write(OUT / 'followup_summary.json', summary)
     write(OUT / 'followup_unmatched.json', results)
     write(OUT / 'followup_series_issues.json', series_issues)

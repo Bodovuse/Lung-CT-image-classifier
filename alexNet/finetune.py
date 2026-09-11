@@ -47,6 +47,7 @@ def fine_tune(rows, output, device='cpu', batch_size=16, epochs=20,
     train = DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=0)
     val = DataLoader(val_data, batch_size=batch_size, num_workers=0)
     backbone = build_backbone(AlexNet_Weights.IMAGENET1K_V1).to(device)
+
     # A temporary differentiable head supplies gradients to the CNN.
     model = nn.Sequential(backbone, nn.AdaptiveAvgPool2d((6, 6)), nn.Flatten(),
                           nn.Linear(256 * 6 * 6, 2)).to(device)
@@ -56,6 +57,7 @@ def fine_tune(rows, output, device='cpu', batch_size=16, epochs=20,
     optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
     best, stale, history = -1.0, 0, []
     checkpoint = output / 'alexnet_features.pt'
+
     if checkpoint.exists():
         raise FileExistsError(checkpoint)
     for epoch in range(1, epochs + 1):
@@ -73,6 +75,7 @@ def fine_tune(rows, output, device='cpu', batch_size=16, epochs=20,
                 print(f'AlexNet epoch {epoch}/{epochs}, batch {step}/{len(train)}, loss={total / step:.5f}', flush=True)
         model.eval()
         truth, predicted = [], []
+
         with torch.inference_mode():
             for images, labels in val:
                 truth.extend(labels.tolist())
@@ -80,6 +83,7 @@ def fine_tune(rows, output, device='cpu', batch_size=16, epochs=20,
         score = float(f1_score(truth, predicted, labels=[0, 1], average='macro', zero_division=0))
         history.append(dict(epoch=epoch, training_loss=total / len(train), validation_macro_f1=score))
         (output / 'finetuning_history.json').write_text(json.dumps(history, indent=2), encoding='utf-8')
+        
         print(f'AlexNet epoch {epoch}: validation macro F1={score:.5f}', flush=True)
         if score > best:
             best, stale = score, 0
@@ -93,6 +97,7 @@ def fine_tune(rows, output, device='cpu', batch_size=16, epochs=20,
             stale += 1
         if stale >= patience:
             break
+        
     saved = torch.load(checkpoint, map_location=device, weights_only=True)
     backbone.load_state_dict(saved['backbone'])
     return backbone.eval().requires_grad_(False), dict(

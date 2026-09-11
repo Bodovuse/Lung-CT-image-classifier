@@ -56,6 +56,7 @@ def main():
     (OUT / 'headers').mkdir(parents=True, exist_ok=True)
     folders = sorted(p for p in DICOM.glob('Lung_Dx-*') if p.is_dir())
     records, errors = [], []
+
     with ThreadPoolExecutor(max_workers=8) as pool:
         futures = [pool.submit(scan, folder) for folder in folders]
         for completed, future in enumerate(as_completed(futures), 1):
@@ -65,9 +66,11 @@ def main():
             status = dict(state='scanning', completed_patients=completed, total_patients=len(folders),
                           images=len(records), errors=len(errors), updated=time.strftime('%Y-%m-%d %H:%M:%S'))
             write(OUT / 'status.json', status)
+            
             if completed % 10 == 0:
                 print(json.dumps(status), flush=True)
     by_uid, by_meta, by_name, by_reference, by_series = (defaultdict(list) for _ in range(5))
+    
     for record in records:
         by_uid[record['uid']].append(record)
         by_meta[record['file_meta_uid']].append(record)
@@ -75,7 +78,9 @@ def main():
         by_series[record['series']].append(record)
         for uid in record['references']:
             by_reference[uid].append(record)
+    
     results = []
+    
     for path in sorted(XML.rglob('*.xml')):
         patient, uid = path.parent.name, path.stem
         matches = by_uid.get(uid, [])
@@ -106,6 +111,7 @@ def main():
                 result['first_bytes_hex'] = path.read_bytes()[:32].hex()
         results.append(result)
     metadata = []
+    
     with Path('D:/Project data/metadata/metadata.csv').open(newline='', encoding='utf-8-sig') as source:
         for row in csv.DictReader(source):
             local = by_series.get(row['SeriesInstanceUID'], [])
@@ -131,6 +137,7 @@ def main():
         missing_series_by_patient=dict(Counter(r['patient'] for r in metadata if not r['images'])),
         different_patient_xml=[r for r in results if r['category'] == 'matched_different_patient'],
         file_meta_uid_disagreements=sum(r['uid'] != r['file_meta_uid'] for r in records))
+    
     write(OUT / 'xml_matches.json', results)
     write(OUT / 'series_download_audit.json', metadata)
     write(OUT / 'read_errors.json', errors)
